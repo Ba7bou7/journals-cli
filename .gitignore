@@ -1,0 +1,5 @@
+# Python Cache Directory
+__pycache__/
+
+# Database File
+data.db
