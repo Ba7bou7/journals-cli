@@ -14,7 +14,7 @@ def msg(messages):
 valid_opts = {
     "calendar" : {
         "table" : "getTable()",
-        "order" : "addOrder()",
+        "order" : "addOrder({})",
         "select" : "selectOrder({})",
     },
     "seasons" : {

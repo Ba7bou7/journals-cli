@@ -81,10 +81,10 @@ def addRow(table_name, columns, values):
         
     except sqlite3.Error as e:
         print(f"Error occurred: {e}")
-    
+
     finally:
         if db: db.close()
-
+    
 
 def getList(table,columns="*"):
     db = sqlite3.connect(db_path)
@@ -107,9 +107,8 @@ def seasonCheck(result=bool):
     query = "SELECT * FROM seasons ORDER BY id DESC LIMIT 1"
     cursor.execute(query)
     last_row = cursor.fetchone()
-
     db.close()
-    
+
     if last_row != None:
         expire_date = last_row[-1].split('-')
         today_date = datetime.now().strftime("%d-%m-%Y").split('-')
@@ -144,18 +143,20 @@ def getTable():
                 if (week <= date < (week + timedelta(days=7))):
                     for i in range(len(days)):
                         if day == days[i]:
-                            if weeks[-1][i] == '':
-                                weeks[-1][i] = 0
-                            weeks[-1][i] += order_PL
+                            if type(weeks[-1][i]) is str:
+                                weeks[-1][i] = float(0)
+                            if type(order_PL) is float:
+                                weeks[-1][i] += order_PL
                 else:
                     week = week + timedelta(days=7)
                     weeks.append(['']*5)
                     if (week <= date < (week + timedelta(days=7))):
                         for i in range(len(days)):
                             if day == days[i]:
-                                if weeks[-1][i] == '':
-                                    weeks[-1][i] = 0
-                                weeks[-1][i] += order_PL
+                                if type(weeks[-1][i]) is str:
+                                    weeks[-1][i] = float(0)
+                                if type(order_PL) is float:
+                                    weeks[-1][i] += order_PL
 
         print('        | ', end='')
         for col in days:
@@ -170,17 +171,41 @@ def getTable():
         print("-!- There is No Current Season -!-")
 
 
-def addOrder():
+def addOrder(selector=None):
     if seasonCheck():
-        today = datetime.now().strftime("%A")
-        if today in days:
+        today_day = datetime.now().strftime("%A")
+        
+        if selector is not None and len(selector) == 1:
+            db = sqlite3.connect(db_path)
+            cursor = db.cursor()
+            today = datetime.now().strftime("%A %d-%m-%Y")
+            query = f"SELECT id, date, position FROM orders WHERE date = '{today}';"
+            cursor.execute(query)
+    
+            orders = cursor.fetchall()
+            order_id, order_date, position_type = orders[int(selector[0])-1]
+            print(" -+- "+position_type.title()+" Order "+selector[0]+" at "+order_date+" -+- ")
+            for col in ['status','profit_or_loss']:
+                while True:
+                    if (value := input(col.title() + " : ")) != "":
+                        break
+                update = f"UPDATE orders SET {col} = ? WHERE id = ?;"
+                cursor.execute(update,(value, order_id))
+            db.commit()
+            db.close()
+        
+        elif today_day in days:
             values = []
             print("-*- Adding New Order -*-")
             for col in order_columns:
                 if col not in ['entre_conditions','breaking_rules','notes_about_the_trade']:
-                    while True:
-                        if (value := input(col.title() + " : ")) != "":
-                            break
+                    if col not in ['status','profit_or_loss']:
+                        while True:
+                            if (value := input(col.title() + " : ")) != "":
+                                break
+                    else:
+                        value = ''
+                
                 elif col == 'entre_conditions':
                     long_str = ""
                     while (value := input(" - ")) != "":
@@ -199,17 +224,110 @@ def addOrder():
                     value = input("--> ")
     
                 values.append(value)
-        
-            addRow("orders", ["date"]+order_columns, [datetime.now().strftime("%A %d-%m-%Y")]+values)
+            
+            addRow("orders", ["date"]+order_columns, [datetime.now().strftime('%A %d-%m-%Y')]+values)
         
         else:
-            print(f"-!- No Trading Session on {today} -!-")
+            print(f"-!- No Trading Session on {today_day} -!-")
     else:
         print("-!- There is No Current Season -!-")
 
 
-def selectOrder(args):
-    pass
+def selectOrder(args=None):
+    if seasonCheck():
+        db = sqlite3.connect(db_path)
+        cursor = db.cursor()
+        if args is None:
+            today = datetime.now().strftime("%A %d-%m-%Y")
+            query = f"SELECT date, position FROM orders WHERE date = '{today}';"
+            cursor.execute(query)
+            
+            orders = cursor.fetchall()
+            
+            for i, order in enumerate(orders):
+                order_date, position_type = order
+                print(" -#- ["+str(i+1)+"] - "+position_type.title()+" Order at "+order_date+" -#- ")
+    
+        elif 1 <= len(args) <= 4:
+            query = '''SELECT 
+                date,
+                position,
+                entre_method,
+                entre_conditions,
+                status,
+                profit_or_loss,
+                emotion,
+                breaking_rules,
+                notes_about_the_trade
+            FROM orders ;'''
+            cursor.execute(query)
+            orders = cursor.fetchall()
+            
+            selected = []
+            
+            start_date, end_date = seasonCheck(tuple)
+            start_date = datetime.strptime(start_date, "%d-%m-%Y")
+            end_date = datetime.strptime(end_date, "%d-%m-%Y")
+            
+            for order in orders:
+                order = list(order)
+                date = datetime.strptime(order[0].split()[1],"%d-%m-%Y")
+                if (start_date <= date <= end_date):
+                    selected.append(order)
+                    if len(args) > 1 and "week" in args and args[args.index("week")+1].isdigit():
+                        week = start_date + timedelta(days=(7*(int(args[args.index("week")+1])-1)))
+                        if not(week <= date < (week + timedelta(days=7))) and order in selected:
+                            selected.remove(order)
+            
+                    if len(args) > 0 and any(arg.title() in days for arg in args):
+                        selector_day = next((arg.title() for arg in args if arg.title() in days), None)
+                        for order in selected:
+                            day = order[0].split()[0]
+                            if day != selector_day and order in selected:
+                                selected.remove(order)
+            
+            if len(args) > 1 and "week" in args and args[args.index("week")+1].isdigit():
+                del args[args.index("week")+1]
+                del args[args.index("week")]
+            if len(args) > 0 and any(arg.title() in days for arg in args):
+                args.remove(next((arg for arg in args if arg.title() in days), None))
+
+            if len(args) == 1 and args[0].isdigit():
+                order_date = selected[int(args[0])-1].pop(0)
+                print(" -*- Order "+args[0]+" at "+order_date+" -*-")
+                for col, val in zip(order_columns,selected[int(args[0])-1]):
+                    if col not in ['entre_conditions','breaking_rules','notes_about_the_trade']:
+                        print(col.title()+" : "+str(val))
+    
+                    elif col == 'entre_conditions':
+                        long_str = val.split('|')
+                        for line in long_str:
+                            print(" - "+line)
+        
+                    elif col == 'breaking_rules':
+                        long_str = val.split('|')
+                        print(col.title() + " :")
+                        for line in long_str:
+                            print(" - "+line)
+        
+                    elif col == 'notes_about_the_trade':
+                        print(col.title() + " :")
+                        print("--> "+val)
+            
+            elif len(args) == 0:
+                for i, order in enumerate(selected):
+                    order_date = order[0]
+                    position_type = order[1]
+                    print(" -#- ["+str(i+1)+"] - "+position_type.title()+" Order at "+order_date+" -#- ")
+    
+            else:
+                param = ", ".join(args)
+                print(" -!- Wrong parameters : {param} -!-")
+        
+        db.close()
+    
+    else:
+        print("-!- There is No Current Season -!-")
 
 
 def addSeason():
