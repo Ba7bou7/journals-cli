@@ -147,6 +147,7 @@ def getTable():
                                 weeks[-1][i] = float(0)
                             if type(order_PL) is float:
                                 weeks[-1][i] += order_PL
+                            weeks[-1][i] = round(weeks[-1][i], 2)
                 else:
                     week = week + timedelta(days=7)
                     weeks.append(['']*5)
@@ -157,6 +158,7 @@ def getTable():
                                     weeks[-1][i] = float(0)
                                 if type(order_PL) is float:
                                     weeks[-1][i] += order_PL
+                                weeks[-1][i] = round(weeks[-1][i], 2)
 
         print('        | ', end='')
         for col in days:
@@ -207,17 +209,17 @@ def addOrder(selector=None):
                         value = ''
                 
                 elif col == 'entre_conditions':
-                    long_str = ""
+                    long_str = []
                     while (value := input(" - ")) != "":
-                        long_str+= "|"+value
-                    value = long_str
+                        long_str.append(value)
+                    value = '|'.join(long_str)
                 
                 elif col == 'breaking_rules':
-                    long_str = ""
+                    long_str = []
                     print(col.title() + " :")
                     while (value := input(" - ")) != "":
-                        long_str+= "|"+value
-                    value = long_str
+                        long_str.append(value)
+                    value = '|'.join(long_str)
                 
                 elif col == 'notes_about_the_trade':
                     print(col.title() + " :")
