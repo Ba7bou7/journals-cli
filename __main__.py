@@ -39,6 +39,8 @@ if __name__ == "__main__" :
                     msg(valid_opts)
                 elif section in valid_opts:
                     msg(valid_opts[section])
+
+            elif cmnd[0] == "clear": print("\033c",end="")
             
             elif (section in valid_opts) and (cmnd[0] in valid_opts[section]):
                 print()
