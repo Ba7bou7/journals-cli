@@ -324,7 +324,7 @@ def selectOrder(args=None):
     
             else:
                 param = ", ".join(args)
-                print(" -!- Wrong parameters : {param} -!-")
+                print(f" -!- Wrong parameters : {param} -!-")
         
         db.close()
     
