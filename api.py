@@ -369,5 +369,38 @@ def getCurrentSeason():
             print(var.title()+" : "+str(item))
     else:
         print("-!- There is No Current Season -!-")
-    
 
+def outcome():
+    if seasonCheck():
+        db = sqlite3.connect(db_path)
+        cursor = db.cursor()
+        query = "SELECT date, profit_or_loss FROM orders ;"
+        cursor.execute(query)
+        orders = cursor.fetchall()
+        
+        start_date, end_date = seasonCheck(tuple)
+        start_date = datetime.strptime(start_date, "%d-%m-%Y")
+        end_date = datetime.strptime(end_date, "%d-%m-%Y")
+        
+        new_balance = 0
+        total_orders = 0
+
+        for order in orders:
+            date = datetime.strptime(order[0].split()[1],"%d-%m-%Y")
+            if (start_date <= date <= end_date):
+                total_orders += 1
+                new_balance += order[1]
+
+        query = "SELECT balance FROM seasons ORDER BY id DESC LIMIT 1"
+        cursor.execute(query)
+        balance = cursor.fetchone()[0]
+        
+        print(" -$- New Balance :",balance+new_balance,"-$-")
+        print(" -$- Total Orders :",total_orders,"-$-")
+
+        db.close()
+
+    else :
+        print("-!- There is No Current Season -!-")
+
+outcome()
