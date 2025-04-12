@@ -1,4 +1,4 @@
-from api import addSeason, getHistory, getCurrentSeason, getTable, addOrder, selectOrder
+from api import addSeason, getHistory, getCurrentSeason, getTable, addOrder, selectOrder, outcome
 
 
 def PS(postion):
@@ -20,7 +20,7 @@ valid_opts = {
     "seasons" : {
         "current" : "getCurrentSeason()",
         "add" : "addSeason()",
-        "outcome" : "",
+        "outcome" : "outcome()",
         "history" : "getHistory({})",
     },
 }
