@@ -402,5 +402,3 @@ def outcome():
 
     else :
         print("-!- There is No Current Season -!-")
-
-outcome()
